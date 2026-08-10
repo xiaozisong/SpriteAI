@@ -215,8 +215,8 @@ export function VideoLanding({
                 <motion.b
                   aria-hidden="true"
                   className="video-landing-flow-line"
-                  initial={reduceMotion ? false : { scaleX: 0, opacity: 0 }}
-                  whileInView={{ scaleX: 1, opacity: 1 }}
+                  initial={reduceMotion ? false : { opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
                   viewport={{ once: true, amount: 0.4 }}
                   transition={{ duration: 0.7, delay: reduceMotion ? 0 : 0.28 + index * 0.16, ease: 'easeOut' }}
                 />
