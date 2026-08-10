@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { motion, useReducedMotion, AnimatePresence } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 
 interface VideoLandingProps {
   isLoggedIn: boolean
@@ -199,23 +199,20 @@ export function VideoLanding({
 
         <div className="video-landing-flow">
           {flowSteps.map((step, index) => (
-            <motion.article
-              key={step.id}
-              initial={softReveal}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.35 }}
-              transition={{ duration: 0.55, delay: reduceMotion ? 0 : 0.12 + index * 0.14 }}
-            >
-              <span>{step.id}</span>
-              <i>{step.icon === 'spark' ? <SparkMark size={20} /> : step.icon}</i>
-              <strong>{step.title}</strong>
-              <p>{step.desc}</p>
-            </motion.article>
-          )).flatMap((node, index, list) => (
-            index < list.length - 1
-              ? [node, (
+            <div key={step.id} className="video-landing-flow-item">
+              <motion.article
+                initial={softReveal}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.35 }}
+                transition={{ duration: 0.55, delay: reduceMotion ? 0 : 0.12 + index * 0.14 }}
+              >
+                <span>{step.id}</span>
+                <i>{step.icon === 'spark' ? <SparkMark size={20} /> : step.icon}</i>
+                <strong>{step.title}</strong>
+                <p>{step.desc}</p>
+              </motion.article>
+              {index < flowSteps.length - 1 && (
                 <motion.b
-                  key={`connector-${index}`}
                   aria-hidden="true"
                   className="video-landing-flow-line"
                   initial={reduceMotion ? false : { scaleX: 0, opacity: 0 }}
@@ -223,8 +220,8 @@ export function VideoLanding({
                   viewport={{ once: true, amount: 0.4 }}
                   transition={{ duration: 0.7, delay: reduceMotion ? 0 : 0.28 + index * 0.16, ease: 'easeOut' }}
                 />
-              )]
-              : [node]
+              )}
+            </div>
           ))}
         </div>
       </section>
@@ -256,15 +253,11 @@ export function VideoLanding({
             <motion.div
               key={item.label}
               className="video-landing-problem-floater"
-              style={{ left: item.x, top: item.y }}
+              style={{ left: item.x, top: item.y, animationDelay: `${item.delay}s` }}
               initial={reduceMotion ? false : { opacity: 0, scale: 0.7 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true, amount: 0.2 }}
               transition={{ duration: 0.55, delay: reduceMotion ? 0 : 0.2 + item.delay }}
-              animate={reduceMotion ? undefined : {
-                y: [0, -7, 0],
-                transition: { duration: 3.6, repeat: Infinity, ease: 'easeInOut', delay: item.delay },
-              }}
             >
               <i /><span>{item.label}</span>
             </motion.div>
@@ -283,22 +276,14 @@ export function VideoLanding({
       <section id="solutions" className="video-landing-solutions">
         <div className="video-landing-solution-particles" aria-hidden="true">
           {solutionParticles.map((particle, index) => (
-            <motion.i
+            <i
               key={index}
               style={{
                 left: particle.x,
                 top: particle.y,
                 width: particle.size,
                 height: particle.size,
-              }}
-              initial={reduceMotion ? false : { opacity: 0, scale: 0.4 }}
-              whileInView={{ opacity: 0.9, scale: 1 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.8, delay: reduceMotion ? 0 : particle.delay }}
-              animate={reduceMotion ? undefined : {
-                y: [0, -10, 0],
-                opacity: [0.45, 0.95, 0.45],
-                transition: { duration: 4.2 + (index % 3) * 0.35, repeat: Infinity, ease: 'easeInOut', delay: particle.delay },
+                animationDelay: `${particle.delay}s`,
               }}
             />
           ))}
@@ -345,17 +330,8 @@ export function VideoLanding({
                 <li key={item.title} className={isActive ? 'is-active' : undefined}>
                   <i />
                   <section>
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={`${item.title}-${isActive ? 'on' : 'off'}`}
-                        initial={reduceMotion || !isActive ? false : { opacity: 0.55, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.35 }}
-                      >
-                        <b>{item.title}</b>
-                        <span>{item.desc}</span>
-                      </motion.div>
-                    </AnimatePresence>
+                    <b>{item.title}</b>
+                    <span>{item.desc}</span>
                   </section>
                 </li>
               )
