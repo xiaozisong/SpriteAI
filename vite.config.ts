@@ -1,6 +1,5 @@
 import { defineConfig, loadEnv, type PluginOption, type TerserOptions } from 'vite'
 import react from '@vitejs/plugin-react'
-import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import viteCompression from 'vite-plugin-compression'
@@ -24,12 +23,6 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       react(),
-      vue({
-        script: {
-          defineModel: true,
-          propsDestructure: true,
-        },
-      }),
       tailwindcss(),
       viteCompression({
         algorithm: 'gzip',
@@ -70,29 +63,12 @@ export default defineConfig(({ mode }) => {
               return 'vendor-react'
             }
 
-            if (/node_modules[\\/]@tiptap[\\/]/.test(id)) {
-              return 'vendor-tiptap'
+            if (/node_modules[\\/](framer-motion|motion)[\\/]/.test(id)) {
+              return 'vendor-motion'
             }
 
-            if (id.includes('markdown-it') || id.includes('highlight.js')) {
-              return 'vendor-markdown'
-            }
-
-            if (id.includes('mermaid')) {
-              return 'vendor-mermaid'
-            }
-
-            if (
-              id.includes('cytoscape') ||
-              id.includes('cose-bilkent') ||
-              id.includes('dagre') ||
-              id.includes('@xyflow')
-            ) {
-              return 'vendor-graph'
-            }
-
-            if (id.includes('katex')) {
-              return 'vendor-katex'
+            if (/node_modules[\\/](axios|zustand)[\\/]/.test(id)) {
+              return 'vendor-data'
             }
           },
         },

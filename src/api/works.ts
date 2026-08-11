@@ -1,18 +1,49 @@
 import apiClient, { type RequestConfig } from "./index";
 import type { CreateWorkType } from "./generate-dialog";
 import type { WorkInfo } from "@/stores/editorStore/types";
+import {
+  createMockWorkDetail,
+  isDevMockAuth,
+  isMockWorkId,
+  shouldUseDevMockApis,
+} from "@/utils/devMock";
 
 export type WorkInfoStage = "blank" | "outline" | "main_content" | "final";
 
 const getWorksListReq = (page: number, pageSize: number = 20) => {
+  if (isDevMockAuth()) {
+    return Promise.resolve({
+      content: [],
+      totalElements: 0,
+      totalPages: 0,
+      size: pageSize,
+      number: page,
+      empty: true,
+      first: true,
+      last: true,
+    });
+  }
   return apiClient.get("/api/works", { page, size: pageSize });
 };
 
-const createWorkReq = (type: CreateWorkType = "editor") => {
-  return apiClient.post("/api/works", { type });
+const createWorkReq = async (type: CreateWorkType = "editor") => {
+  try {
+    return await apiClient.post("/api/works", { type });
+  } catch (error) {
+    if (isDevMockAuth()) {
+      return {
+        id: `mock-work-${Date.now()}`,
+        type,
+      };
+    }
+    throw error;
+  }
 };
 
-const getWorksByIdReq = (workId: string) => {
+const getWorksByIdReq = async (workId: string) => {
+  if (shouldUseDevMockApis(workId) || isMockWorkId(workId)) {
+    return createMockWorkDetail(workId);
+  }
   return apiClient.get(`/api/works/${workId}`);
 };
 
@@ -71,6 +102,14 @@ const updateWorkInfoReq = async (
   workId: string,
   data: Partial<WorkInfo>
 ) => {
+  if (shouldUseDevMockApis(workId)) {
+    return {
+      ...createMockWorkDetail(workId),
+      ...data,
+      workId,
+      id: workId,
+    };
+  }
   return apiClient.put(`/api/works/${workId}`, data);
 };
 

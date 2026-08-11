@@ -7,51 +7,39 @@ import { getMatomoTracker } from '@/matomo/trackingMatomoEvent'
  * 路由标题映射表
  */
 const ROUTE_TITLES: Record<string, string> = {
-  '/': '落地页',
-  '/workspace/my-place': '我的空间',
-  '/workspace/trending-list': '创作榜单',
-  '/workspace/ai-expert/book-analysis': '拆书仿写',
-  '/workspace/ai-expert/writing-styles': '文风提炼',
-  '/workspace/creation-community/course': '课程',
-  '/workspace/creation-community/course/details': '课程详情',
-  '/workspace/creation-community/share': '分享',
-  '/workspace/creation-community/share/details': '分享详情',
-  '/workspace/creation-community/prompt': '提示词',
-  '/editor': '编辑器 / 通用创作短篇',
+  '/': '首页',
+  '/editor': 'AI Workspace',
+  '/auth/callback': '登录回调',
+  '/user-agreement': '用户服务协议',
+  '/privacy-policy': '隐私政策',
 }
 
 /**
  * 根据路径获取页面标题
  */
 const getPageTitle = (pathname: string): string => {
-  // 精确匹配
   if (ROUTE_TITLES[pathname]) {
     return ROUTE_TITLES[pathname]
   }
 
-  // 动态路由前缀匹配（如 /editor/:workId、/quick-editor/:workId）
   for (const [route, title] of Object.entries(ROUTE_TITLES)) {
     if (pathname.startsWith(`${route}/`)) {
       return title
     }
   }
 
-  // 默认使用 document.title
   return document.title
 }
 
 /**
  * 根据路径获取页面路由配置
  */
-
 const getPageRoute = (pathname: string): string => {
-  // 精确匹配
   if (ROUTE_TITLES[pathname]) {
     return pathname
   }
 
-  // 动态路由前缀匹配（如 /editor/:workId、/quick-editor/:workId）
-  for (const [route, title] of Object.entries(ROUTE_TITLES)) {
+  for (const [route] of Object.entries(ROUTE_TITLES)) {
     if (pathname.startsWith(`${route}/`)) {
       return route
     }
@@ -94,5 +82,5 @@ export const AppRouteGuard = () => {
     prevLocationRef.current = location
   }, [location, matches])
 
-  return <MobileRedirectGuard/>
+  return <MobileRedirectGuard />
 }

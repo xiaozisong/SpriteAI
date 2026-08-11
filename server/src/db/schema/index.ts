@@ -9,6 +9,11 @@
  * 字段类型严格对齐（含 timestamp 时区、vector 维度 1024）。
  */
 export * from './users';
+export * from './auth-identities';
+export * from './auth-sessions';
+export * from './email-login-codes';
+export * from './oauth-states';
+export * from './login-tickets';
 export * from './works';
 export * from './sessions';
 export * from './messages';

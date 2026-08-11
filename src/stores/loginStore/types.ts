@@ -3,8 +3,13 @@ import type { GuideTask } from '@/api/users'
 export interface UserInfo {
   id: string
   createdTime?: string
-  phone: string
+  /** 旧业务仍可能读取 phone；新登录方式不强制手机号。 */
+  phone?: string
+  /** 邮箱验证码登录会返回 email；QQ/微信登录可能为空。 */
+  email?: string | null
   nickName: string
+  /** QQ/微信资料里可能带头像。 */
+  avatarUrl?: string | null
   limitStatus?: number
 }
 
@@ -56,7 +61,18 @@ export interface LoginActions {
   markMessageAsRead: (messageId: string | number) => void
   updateMessages: () => Promise<Message[]>
   loadMoreMessages: () => Promise<void>
+  /** 发送 QQ 邮箱 / Gmail 验证码。 */
+  sendEmailCode: (email: string) => Promise<{ success: boolean; message: string }>
+  /** 使用邮箱 + 6 位验证码完成登录。 */
+  loginWithEmailCode: (email: string, code: string) => Promise<{ success: boolean; message: string }>
+  /** 兼容旧 ticket 登录入口，内部转到 OAuth ticket 交换。 */
   loginWithTicket: (ticket: string) => Promise<{ success: boolean; message: string }>
+  /** 获取 QQ/微信授权 URL 并跳转。 */
+  startOAuthLogin: (provider: 'qq' | 'wechat') => Promise<void>
+  /** OAuth 回调页用一次性 ticket 换 token。 */
+  handleOAuthCallback: (ticket: string) => Promise<{ success: boolean; message: string }>
+  /** 页面刷新后用 token 恢复当前用户信息。 */
+  fetchCurrentUser: () => Promise<UserInfo | null>
   logout: () => Promise<void>
   initUserInfo: () => void
   requireLogin: <T extends any[]>(action: (...args: T) => void | Promise<void>, ...args: T) => Promise<void>

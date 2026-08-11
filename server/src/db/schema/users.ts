@@ -10,6 +10,7 @@ export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   email: varchar('email', { length: 255 }).unique(),
   nickname: varchar('nickname', { length: 100 }),
+  avatarUrl: varchar('avatar_url', { length: 1024 }),
   // 鉴权字段（阶段 6 补）
   passwordHash: varchar('password_hash', { length: 255 }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

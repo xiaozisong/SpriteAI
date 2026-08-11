@@ -1,4 +1,5 @@
 import apiClient from "./index";
+import { createEmptyNotificationPage, isDevMockAuth } from "@/utils/devMock";
 
 export interface NotificationItem {
   id: number;
@@ -44,6 +45,11 @@ const getInsiteNotification = (
   page: number,
   size: number
 ): Promise<NotificationPageData> => {
+  if (isDevMockAuth()) {
+    return Promise.resolve(
+      createEmptyNotificationPage(page, size) as NotificationPageData
+    );
+  }
   return apiClient.get("/api/notifications", { page, size });
 };
 

@@ -1,5 +1,13 @@
 import { create } from 'zustand'
-import { verifyTicket, getNewbieMission, completeNewbieMissionReq, getUserBalanceReq, getLogoutReq, type GuideTask } from '@/api/users'
+import { getNewbieMission, completeNewbieMissionReq, getUserBalanceReq, type GuideTask } from '@/api/users'
+import {
+  exchangeOAuthTicketReq,
+  getCurrentUserReq,
+  getOAuthUrlReq,
+  logoutReq,
+  sendEmailCodeReq,
+  verifyEmailCodeReq,
+} from '@/api/auth'
 import { getInsiteNotification, type NotificationItem } from '@/api/insite-notification'
 import { openLoginDialog } from '@/components/LoginDialog'
 import type {
@@ -14,6 +22,24 @@ export type { UserInfo, AvatarData, Message, InterceptedAction, LoginStore } fro
 
 const NEWBIE_TOUR_STORAGE_KEY = 'hasNewbieTourShowed'
 const READED_IDS_KEY = 'readedMessageIds'
+const MOCK_LOGIN_USER: UserInfo = {
+  id: 'mock-creator-001',
+  email: 'creator.mock@boomcat.dev',
+  nickName: '开发体验账号',
+  avatarUrl: null,
+}
+
+function enableDevMockLogin() {
+  if (!import.meta.env.DEV) return false
+  try {
+    localStorage.setItem('token', 'mock-dev-token')
+    localStorage.setItem('refreshToken', 'mock-dev-refresh-token')
+    localStorage.setItem('userInfo', JSON.stringify(MOCK_LOGIN_USER))
+    return true
+  } catch {
+    return false
+  }
+}
 
 function loadReadedMessageIdsFromStorage(): string[] {
   try {
@@ -129,7 +155,7 @@ function renderAvatarFromData(
 
 function getAvatarDataUrl(userInfo: UserInfo | null): string {
   return renderAvatarFromData(
-    makeRandomAvatar(userInfo?.phone ?? '13600008888')
+    makeRandomAvatar(userInfo?.phone ?? userInfo?.email ?? userInfo?.id ?? '13600008888')
   )
 }
 
@@ -263,7 +289,7 @@ export const useLoginStore = create<LoginStore>((set, get) => {
       } catch (e) {
         console.error('更新消息列表失败:', e)
         set({ messages: [], hasMoreMessages: false })
-        throw e
+        return []
       } finally {
         set({ isLoadingMessages: false })
       }
@@ -304,13 +330,75 @@ export const useLoginStore = create<LoginStore>((set, get) => {
       }
     },
 
-    loginWithTicket: async (ticket: string) => {
+    // 发送邮箱验证码：只负责调用 API 和维护 loading，具体限流/域名校验由后端兜底。
+    sendEmailCode: async (email: string) => {
       set({ isLoading: true })
-      const invitationCode = localStorage.getItem('invitation_code_new') ?? ''
       try {
-        const req: any = await verifyTicket(ticket, invitationCode)
+        const req = await sendEmailCodeReq(email)
+        return { success: true, message: req?.message || '验证码已发送' }
+      } catch (err: any) {
+        return {
+          success: false,
+          message: err?.response?.data?.message ?? err?.message ?? '验证码发送失败',
+        }
+      } finally {
+        set({ isLoading: false })
+      }
+    },
+
+    // 邮箱验证码登录：成功后把 token、refreshToken、userInfo 写入本地状态。
+    loginWithEmailCode: async (email: string, code: string) => {
+      set({ isLoading: true })
+      try {
+        const req = await verifyEmailCodeReq(email, code)
         if (req?.token) {
           localStorage.setItem('token', req.token)
+        }
+        if (req?.refreshToken) {
+          localStorage.setItem('refreshToken', req.refreshToken)
+        }
+        if (req?.user) {
+          get().saveUserInfo(req.user)
+        }
+        get().updateLoginStatus()
+        return { success: true, message: '登录成功' }
+      } catch (err: any) {
+        return {
+          success: false,
+          message: err?.response?.data?.message ?? err?.message ?? '登录失败',
+        }
+      } finally {
+        set({ isLoading: false })
+      }
+    },
+
+    // 兼容旧 LoginDialog 的 ticket 登录方法，现在复用 OAuth ticket 交换逻辑。
+    loginWithTicket: async (ticket: string) => {
+      return get().handleOAuthCallback(ticket)
+    },
+
+    // QQ/微信登录第一步：向后端拿授权 URL，然后浏览器跳转到三方扫码页。
+    startOAuthLogin: async (provider) => {
+      set({ isLoading: true })
+      try {
+        const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
+        const req = await getOAuthUrlReq(provider, currentPath)
+        window.location.href = req.url
+      } finally {
+        set({ isLoading: false })
+      }
+    },
+
+    // QQ/微信登录第二步：回调页拿到 ticket 后，用 ticket 换系统 token。
+    handleOAuthCallback: async (ticket: string) => {
+      set({ isLoading: true })
+      try {
+        const req = await exchangeOAuthTicketReq(ticket)
+        if (req?.token) {
+          localStorage.setItem('token', req.token)
+        }
+        if (req?.refreshToken) {
+          localStorage.setItem('refreshToken', req.refreshToken)
         }
         if (req?.user) {
           get().saveUserInfo(req.user)
@@ -328,14 +416,32 @@ export const useLoginStore = create<LoginStore>((set, get) => {
       }
     },
 
+    // 页面刷新后恢复用户信息；如果 token 失效，则清空本地登录态。
+    fetchCurrentUser: async () => {
+      try {
+        const user = await getCurrentUserReq()
+        get().saveUserInfo(user)
+        get().updateLoginStatus()
+        return user
+      } catch {
+        get().saveUserInfo(null)
+        localStorage.removeItem('token')
+        localStorage.removeItem('refreshToken')
+        get().updateLoginStatus()
+        return null
+      }
+    },
+
+    // 退出登录：通知后端后清理本地 token/userInfo，并回到首页。
     logout: async() => {
       try {
-        const req: any = await getLogoutReq()
+        await logoutReq()
       } catch (error) {
         console.error('退出登录失败:', error)
       }
       get().saveUserInfo(null)
       localStorage.removeItem('token')
+      localStorage.removeItem('refreshToken')
       localStorage.removeItem('___first_in_editor___')
       resetMatomoUser()
       get().updateLoginStatus()
@@ -376,6 +482,14 @@ export const useLoginStore = create<LoginStore>((set, get) => {
         const result = action(...args)
         return result instanceof Promise ? result : Promise.resolve()
       }
+
+      if (enableDevMockLogin()) {
+        get().saveUserInfo(MOCK_LOGIN_USER)
+        get().updateLoginStatus()
+        const result = action(...args)
+        return result instanceof Promise ? result : Promise.resolve()
+      }
+
       set((s) => ({
         interceptedActions: [...s.interceptedActions, () => action(...args)],
         loginDialogRequest: s.loginDialogRequest + 1,

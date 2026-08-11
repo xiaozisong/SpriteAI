@@ -19,15 +19,18 @@ import './index.css'
 // 初始化 rem 适配
 setRem()
 
-// matomo埋点接入
+// matomo埋点接入（未配置 host 时跳过，避免本地开发噪音）
 try {
-  const mode = import.meta.env.MODE || "dev";
-  const siteId = mode === "prd" ? "3" : "2";
-  const tracker = initMatomo({
-    host: "https://observer.baowenmao.com/",
-    siteId: siteId,
-  });
-  setMatomoTracker(tracker)
+  const matomoHost = (import.meta.env.VITE_MATOMO_HOST as string | undefined) || "";
+  if (matomoHost) {
+    const mode = import.meta.env.MODE || "dev";
+    const siteId = mode === "prd" ? "3" : "2";
+    const tracker = initMatomo({
+      host: matomoHost,
+      siteId: siteId,
+    });
+    setMatomoTracker(tracker);
+  }
 } catch (error) {
   console.error("[Matomo] Initialization error:", error);
 }
